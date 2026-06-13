@@ -1,0 +1,19 @@
+{
+  "name": "ahh-voice-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "probe": "node src/probe.js",
+    "start": "node src/orchestrator.js",
+    "replay": "node src/replay.js",
+    "echo": "node src/echo-server.js",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:deploy": "npm --prefix web exec vercel deploy --prod"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "ws": "^8.18.0"
+  }
+}

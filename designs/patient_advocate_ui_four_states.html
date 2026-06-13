@@ -1,0 +1,80 @@
+<h2 class="sr-only">Patient advocate UI across four states: pre-call claim form, active call transcript, patient handoff decision, and outcome card.</h2>
+<div style="display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem 0;">
+
+<div>
+<div style="font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; letter-spacing: 0.04em;">STATE 1 · before the call</div>
+<div style="background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1.25rem;">
+  <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <span style="font-weight:500; font-size:15px;">Denied claim</span>
+      <span style="background:#FCEBEB; color:#A32D2D; font-size:12px; padding:3px 10px; border-radius:var(--border-radius-md);">CO-97 denied</span>
+    </div>
+    <table style="width:100%; font-size:13px;">
+      <tr><td style="color:var(--color-text-secondary); padding:4px 0;">Claim #</td><td style="text-align:right;">UHC-8821</td></tr>
+      <tr><td style="color:var(--color-text-secondary); padding:4px 0;">Service</td><td style="text-align:right;">MRI · lower back</td></tr>
+      <tr><td style="color:var(--color-text-secondary); padding:4px 0;">Amount</td><td style="text-align:right;">$1,840</td></tr>
+      <tr><td style="color:var(--color-text-secondary); padding:4px 0;">Your goal</td><td style="text-align:right;">Overturn denial</td></tr>
+    </table>
+    <button style="width:100%; margin-top:16px; background:#0F6E56; color:#fff; border:none; padding:11px; font-size:14px; font-weight:500; border-radius:var(--border-radius-md); cursor:pointer;"><i class="ti ti-phone" aria-hidden="true" style="vertical-align:-2px; margin-right:6px;"></i>Start the call</button>
+  </div>
+</div>
+</div>
+
+<div>
+<div style="font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; letter-spacing: 0.04em;">STATE 2 · live call — your advocate is on the line</div>
+<div style="background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1.25rem;">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+    <span style="width:8px; height:8px; border-radius:50%; background:#1D9E75; display:inline-block;"></span>
+    <span style="font-size:13px; color:#0F6E56; font-weight:500;">Advocate speaking</span>
+    <span style="margin-left:auto; font-size:12px; color:var(--color-text-tertiary);"><i class="ti ti-clock" aria-hidden="true" style="vertical-align:-2px;"></i> 0:48</span>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:12px;">
+    <div style="width:30px; height:30px; border-radius:50%; background:#E1F5EE; color:#0F6E56; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500;"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+    <div style="background:#E1F5EE; border-radius:var(--border-radius-md); padding:9px 12px; font-size:13px; color:#04342C;">I'm calling on behalf of the member regarding claim UHC-8821. The MRI was ordered by their physician and is medically necessary.</div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:12px; flex-direction:row-reverse;">
+    <div style="width:30px; height:30px; border-radius:50%; background:#F1EFE8; color:#5F5E5A; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px;"><i class="ti ti-building" aria-hidden="true"></i></div>
+    <div style="background:#F1EFE8; border-radius:var(--border-radius-md); padding:9px 12px; font-size:13px; color:#2C2C2A;">That code requires a prior authorization on file. I'm not seeing one. <span style="color:#A32D2D;">Without it I can't reverse this.</span></div>
+  </div>
+
+  <div style="display:flex; gap:10px;">
+    <div style="width:30px; height:30px; border-radius:50%; background:#E1F5EE; color:#0F6E56; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500;"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+    <div style="background:#E1F5EE; border-radius:var(--border-radius-md); padding:9px 12px; font-size:13px; color:#04342C;">The ordering provider submitted auth on March 1st — reference PA-4471. Can you check under that number?</div>
+  </div>
+</div>
+</div>
+
+<div>
+<div style="font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; letter-spacing: 0.04em;">STATE 3 · your call to make — the centerpiece</div>
+<div style="background:#FAEEDA; border:2px solid #BA7517; border-radius: var(--border-radius-lg); padding:1.25rem;">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+    <i class="ti ti-hand-stop" aria-hidden="true" style="color:#854F0B; font-size:18px;"></i>
+    <span style="font-size:13px; font-weight:500; color:#854F0B;">Call paused — your decision</span>
+  </div>
+  <p style="font-size:14px; color:#412402; margin:0 0 14px; line-height:1.6;">The insurer will approve a <strong style="font-weight:500;">partial</strong> payment of $1,100 now, or you can push for the full $1,840 — which means a formal appeal and a 2–3 week wait.</p>
+  <div style="display:flex; gap:10px;">
+    <button style="flex:1; background:var(--color-background-primary); border:0.5px solid var(--color-border-secondary); padding:11px; font-size:13px; font-weight:500; border-radius:var(--border-radius-md); cursor:pointer;">Accept $1,100 now</button>
+    <button style="flex:1; background:#854F0B; color:#fff; border:none; padding:11px; font-size:13px; font-weight:500; border-radius:var(--border-radius-md); cursor:pointer;">Push for full amount</button>
+  </div>
+</div>
+</div>
+
+<div>
+<div style="font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; letter-spacing: 0.04em;">STATE 4 · outcome</div>
+<div style="background: var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding:1.25rem;">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+    <i class="ti ti-check" aria-hidden="true" style="color:#0F6E56; font-size:18px;"></i>
+    <span style="font-weight:500; font-size:15px;">Appeal filed — partial resolution</span>
+  </div>
+  <table style="width:100%; font-size:13px;">
+    <tr><td style="color:var(--color-text-secondary); padding:5px 0; vertical-align:top;">Result</td><td style="text-align:right;">Auth located; full appeal submitted</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:5px 0; vertical-align:top;">Next step</td><td style="text-align:right;">Insurer responds within 21 days</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:5px 0;">Reference</td><td style="text-align:right; font-family:var(--font-mono);">APL-90412</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:5px 0;">If no reply</td><td style="text-align:right;">Advocate will call back Thu</td></tr>
+  </table>
+</div>
+</div>
+
+</div>
