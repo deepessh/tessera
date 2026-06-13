@@ -7,15 +7,27 @@
   --color-text-secondary: #5f5e5a;
   --color-text-tertiary: #8a8985;
 
+  /* Teal = patient's advocate */
   --color-advocate: #0f6e56;
-  --color-advocate-bubble: #e1f5ee;
+  --color-advocate-bubble: #9fe1cb;
+  --color-advocate-fill: #e1f5ee;
   --color-advocate-text: #04342c;
   --color-advocate-dot: #1d9e75;
 
-  --color-insurer-bubble: #f1efe8;
-  --color-insurer-text: #2c2c2a;
-  --color-insurer-avatar: #5f5e5a;
+  /* Deep-teal surfaces */
+  --color-deep-teal: #04342c;
+  --color-deep-teal-tile: #085041;
+  --color-deep-teal-accent: #9fe1cb;
+  --color-deep-teal-accent-muted: #5dcaa5;
 
+  /* Gray = insurer */
+  --color-insurer: #888780;
+  --color-insurer-bubble: #d3d1c7;
+  --color-insurer-fill: #f1efe8;
+  --color-insurer-text: #2c2c2a;
+  --color-insurer-avatar: #888780;
+
+  /* Amber = patient decision (handoff only) */
   --color-handoff-bg: #faeeda;
   --color-handoff-border: #ba7517;
   --color-handoff-text: #854f0b;
@@ -41,27 +53,90 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 .app {
-  max-width: 480px;
+  max-width: 1040px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 1.25rem 1rem 2rem;
+  padding: 1.5rem 2rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 1rem;
 }
 
-.app-title {
-  margin: 0;
-  font-size: 0.75rem;
+@media (min-width: 900px) {
+  .app {
+    padding: 1.75rem 2.5rem 3rem;
+  }
+}
+
+/* ── Thesis bar ── */
+
+.thesis-bar {
+  background: var(--color-deep-teal);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tile-mark {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.tile-mark__cell {
+  background: var(--color-advocate-dot);
+  border-radius: 2px;
+}
+
+.thesis-bar__wordmark {
   font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
+  font-size: 17px;
+  color: var(--color-deep-teal-accent);
+  flex-shrink: 0;
+}
+
+.thesis-bar__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--color-advocate-dot);
+  flex-shrink: 0;
+}
+
+.thesis-bar__tagline {
+  font-size: 15px;
+  color: var(--color-advocate-fill);
+  line-height: 1.4;
+}
+
+/* ── Status row (pill + timer) ── */
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1.5rem;
+}
+
+.status-row .status-pill {
+  flex: 1;
+}
+
+.call-timer {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 /* ── Header (claim summary) ── */
@@ -87,14 +162,14 @@ body {
 
 .claim-header__title {
   font-weight: 500;
-  font-size: 15px;
+  font-size: 16px;
   margin: 0;
 }
 
 .claim-header__badge {
   background: var(--color-denial-bg);
   color: var(--color-denial-text);
-  font-size: 12px;
+  font-size: 13px;
   padding: 3px 10px;
   border-radius: var(--radius-md);
   white-space: nowrap;
@@ -103,7 +178,7 @@ body {
 
 .claim-header__table {
   width: 100%;
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 12px;
   border-collapse: collapse;
 }
@@ -124,7 +199,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--color-text-secondary);
   min-width: 0;
 }
@@ -140,9 +215,9 @@ body {
 .status-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 1.25rem;
-  font-size: 13px;
+  gap: 10px;
+  min-height: 1.5rem;
+  font-size: 16px;
 }
 
 .status-pill--hidden {
@@ -150,8 +225,8 @@ body {
 }
 
 .status-pill__dot {
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -196,7 +271,7 @@ body {
 .body-panel {
   background: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 .body-panel--plain {
@@ -210,7 +285,7 @@ body {
   background: var(--color-bg-primary);
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .start-button {
@@ -219,15 +294,15 @@ body {
   background: var(--color-advocate);
   color: #fff;
   border: none;
-  padding: 11px;
-  font-size: 14px;
+  padding: 13px;
+  font-size: 16px;
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .start-button:hover {
@@ -244,18 +319,18 @@ body {
 }
 
 .start-hint {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-tertiary);
   margin-top: 10px;
   margin-bottom: 0;
 }
 
 .error-banner {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--color-denial-text);
   background: var(--color-denial-bg);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: 10px 14px;
   margin: 0;
 }
 
@@ -264,14 +339,14 @@ body {
 .transcript {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: min(60dvh, 420px);
+  gap: 14px;
+  max-height: min(65dvh, 520px);
   overflow-y: auto;
   scroll-behavior: smooth;
 }
 
 .transcript-empty {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-tertiary);
   text-align: center;
   padding: 2rem 1rem;
@@ -279,7 +354,7 @@ body {
 
 .bubble-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
   animation: bubble-in 0.35s ease-out both;
 }
@@ -300,30 +375,30 @@ body {
 }
 
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
 }
 
 .avatar--advocate {
-  background: var(--color-advocate-bubble);
-  color: var(--color-advocate);
+  background: var(--color-advocate);
 }
 
 .avatar--insurer {
-  background: var(--color-insurer-bubble);
-  color: var(--color-insurer-avatar);
+  background: var(--color-insurer-avatar);
 }
 
 .bubble {
   border-radius: var(--radius-md);
-  padding: 9px 12px;
-  font-size: 13px;
-  max-width: calc(100% - 40px);
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: calc(100% - 48px);
 }
 
 .bubble--advocate {
@@ -407,25 +482,30 @@ body {
 .outcome-panel__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.outcome-panel__header svg {
+  color: var(--color-advocate);
+  flex-shrink: 0;
 }
 
 .outcome-panel__title {
   font-weight: 500;
-  font-size: 15px;
+  font-size: 18px;
   margin: 0;
   color: var(--color-text);
 }
 
 .outcome-table {
   width: 100%;
-  font-size: 13px;
+  font-size: 15px;
   border-collapse: collapse;
 }
 
 .outcome-table td {
-  padding: 5px 0;
+  padding: 6px 0;
   vertical-align: top;
 }
 
@@ -442,12 +522,42 @@ body {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
+.outcome-actions {
+  margin-top: 1.25rem;
+}
+
+.show-closing-button {
+  background: var(--color-advocate);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.show-closing-button:hover {
+  filter: brightness(1.05);
+}
+
+.show-closing-button:active {
+  filter: brightness(0.95);
+}
+
 .terminal-message {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text-secondary);
   text-align: center;
   padding: 2rem 1rem;
   line-height: 1.6;
+  margin: 0;
+}
+
+.terminal-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
 }
 
 .sr-only {

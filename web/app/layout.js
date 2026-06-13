@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Patient Advocate",
-  description: "Your AI advocate fights denied claims — live.",
+  title: "Tessera",
+  description: "Patient-side voice advocacy — an agent on your side of the call.",
 };
 
 export default function RootLayout({ children }) {
