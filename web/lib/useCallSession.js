@@ -1,0 +1,569 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const WS_URL = process.env.NEXT_PUBLIC_ORCH_WS_URL ?? "";
+const CLINIC_READ_DWELL_MS = 3000;
+const WS_RECONNECT_MS = 2000;
+
+/** Server error when a second decision arrives after the gate closed — safe to ignore. */
+const BENIGN_HANDOFF_ERROR = "No handoff is waiting for a decision";
+
+/** Minimal silent WAV for autoplay unlock. */
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+
+/**
+ * @typedef {"idle" | "calling" | "handoff" | "done"} Phase
+ * @typedef {"idle" | "connecting" | "advocate" | "insurer" | "paused" | "done"} PillState
+ */
+
+/**
+ * @param {import("react").Dispatch<import("react").SetStateAction<Phase>>} setPhase
+ * @param {import("react").Dispatch<import("react").SetStateAction<PillState>>} setPillState
+ * @param {import("react").Dispatch<import("react").SetStateAction<{ role: string, text: string }[]>>} setTurns
+ * @param {import("react").Dispatch<import("react").SetStateAction<{ reason: string, options: { id: string, label: string }[] } | null>>} setHandoff
+ * @param {import("react").Dispatch<import("react").SetStateAction<object | null>>} setOutcome
+ * @param {import("react").Dispatch<import("react").SetStateAction<boolean>>} setTerminalOnly
+ * @param {import("react").Dispatch<import("react").SetStateAction<boolean>>} setChoosing
+ * @param {import("react").Dispatch<import("react").SetStateAction<string | null>>} setError
+ * @param {import("react").MutableRefObject<boolean>} callActiveRef
+ * @param {() => void} onHandoffShown
+ * @param {() => void} onCallFinished
+ */
+function createQueueProcessor({
+  setPhase,
+  setPillState,
+  setTurns,
+  setHandoff,
+  setOutcome,
+  setTerminalOnly,
+  setChoosing,
+  setError,
+  audioRef,
+  handoffWaitRef,
+  callActiveRef,
+  onHandoffShown,
+  onCallFinished,
+}) {
+  /** @type {object[]} */
+  const queue = [];
+  let draining = false;
+  let sawOutcome = false;
+  let skipTurnPacing = false;
+  /** @type {(() => void) | null} */
+  let playbackFinishRef = null;
+  /** @type {(() => void) | null} */
+  let dwellFinishRef = null;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let dwellTimer = null;
+
+  function resolveHandoffWait() {
+    const resolve = handoffWaitRef.current;
+    if (resolve) {
+      handoffWaitRef.current = null;
+      resolve();
+    }
+  }
+
+  function stopPlayback() {
+    skipTurnPacing = true;
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute("src");
+    }
+    if (playbackFinishRef) {
+      playbackFinishRef();
+      playbackFinishRef = null;
+    }
+    if (dwellTimer) {
+      clearTimeout(dwellTimer);
+      dwellTimer = null;
+    }
+    if (dwellFinishRef) {
+      dwellFinishRef();
+      dwellFinishRef = null;
+    }
+  }
+
+  function waitDwell(ms) {
+    if (skipTurnPacing) return Promise.resolve();
+    return new Promise((resolve) => {
+      dwellFinishRef = resolve;
+      dwellTimer = setTimeout(() => {
+        dwellTimer = null;
+        dwellFinishRef = null;
+        resolve();
+      }, ms);
+    });
+  }
+
+  function flushTurnTranscripts(turnItems) {
+    if (turnItems.length === 0) return;
+    setTurns((prev) => [
+      ...prev,
+      ...turnItems.map((item) => ({
+        role: item.role === "advocate" ? "advocate" : "clinic",
+        text: item.text,
+      })),
+    ]);
+  }
+
+  function prioritizeHandoff(handoffItem) {
+    stopPlayback();
+
+    const flushedTurns = [];
+    const after = [];
+
+    for (const queued of queue) {
+      if (queued.type === "turn") {
+        flushedTurns.push(queued);
+      } else {
+        after.push(queued);
+      }
+    }
+
+    flushTurnTranscripts(flushedTurns);
+    queue.length = 0;
+    queue.push(handoffItem, ...after);
+    void drain();
+  }
+
+  /** @param {string} base64 @param {number} [durMs] */
+  function playAdvocateAudio(base64, durMs) {
+    const audio = audioRef.current;
+    if (!audio) {
+      return new Promise((resolve) => setTimeout(resolve, durMs || CLINIC_READ_DWELL_MS));
+    }
+
+    return new Promise((resolve) => {
+      const finish = () => {
+        playbackFinishRef = null;
+        audio.onended = null;
+        audio.onerror = null;
+        resolve();
+      };
+
+      if (skipTurnPacing) {
+        finish();
+        return;
+      }
+
+      playbackFinishRef = finish;
+      audio.onended = finish;
+      audio.onerror = finish;
+      audio.src = `data:audio/wav;base64,${base64}`;
+      audio.play().catch(() => {
+        setTimeout(finish, durMs || CLINIC_READ_DWELL_MS);
+      });
+    });
+  }
+
+  function waitForHandoffDecision() {
+    // No client-side timeout — server auto-resolve sends turn/outcome/end which unblocks via enqueue.
+    return new Promise((resolve) => {
+      handoffWaitRef.current = () => {
+        handoffWaitRef.current = null;
+        resolve();
+      };
+    });
+  }
+
+  /** @param {object} item */
+  async function processItem(item) {
+    if (!callActiveRef.current) return;
+
+    switch (item.type) {
+      case "turn": {
+        const role = item.role === "advocate" ? "advocate" : "clinic";
+        setPillState(role === "advocate" ? "advocate" : "insurer");
+        setTurns((prev) => [...prev, { role, text: item.text }]);
+
+        if (skipTurnPacing) break;
+
+        if (role === "advocate" && item.audioBase64) {
+          await playAdvocateAudio(item.audioBase64, item.durMs);
+        } else if (role === "clinic") {
+          await waitDwell(CLINIC_READ_DWELL_MS);
+        } else {
+          await waitDwell(item.durMs || CLINIC_READ_DWELL_MS);
+        }
+        break;
+      }
+      case "handoff": {
+        skipTurnPacing = false;
+        setPhase("handoff");
+        setPillState("paused");
+        setHandoff({ reason: item.reason, options: item.options });
+        setChoosing(false);
+        onHandoffShown();
+        await waitForHandoffDecision();
+        if (!callActiveRef.current) return;
+        setPhase("calling");
+        setHandoff(null);
+        setPillState("connecting");
+        break;
+      }
+      case "outcome": {
+        if (!callActiveRef.current) return;
+        sawOutcome = true;
+        setPhase("done");
+        setPillState("done");
+        setOutcome({
+          status: item.status,
+          summary: item.summary,
+          next_steps: item.next_steps,
+          reference_number: item.reference_number,
+        });
+        onCallFinished();
+        break;
+      }
+      case "end": {
+        if (!callActiveRef.current) return;
+        setPhase("done");
+        setPillState("done");
+        if (!sawOutcome) {
+          setTerminalOnly(true);
+        }
+        onCallFinished();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  async function drain() {
+    if (draining) return;
+    draining = true;
+    while (queue.length > 0) {
+      const item = queue.shift();
+      try {
+        await processItem(item);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Playback failed");
+      }
+    }
+    draining = false;
+  }
+
+  return {
+    enqueue(item) {
+      if (!callActiveRef.current) return;
+
+      if (item.type === "handoff") {
+        prioritizeHandoff(item);
+        return;
+      }
+
+      // Server auto-resolved handoff (timeout) and continued — unblock the wait.
+      if (
+        handoffWaitRef.current &&
+        (item.type === "turn" || item.type === "outcome" || item.type === "end")
+      ) {
+        resolveHandoffWait();
+      }
+      queue.push(item);
+      void drain();
+    },
+    reset() {
+      queue.length = 0;
+      draining = false;
+      sawOutcome = false;
+      skipTurnPacing = false;
+      playbackFinishRef = null;
+      if (dwellTimer) clearTimeout(dwellTimer);
+      dwellTimer = null;
+      dwellFinishRef = null;
+      resolveHandoffWait();
+    },
+    resolveHandoffWait,
+  };
+}
+
+export function useCallSession() {
+  /** @type {[Phase, Function]} */
+  const [phase, setPhase] = useState("idle");
+  /** @type {[PillState, Function]} */
+  const [pillState, setPillState] = useState("idle");
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  const [claim, setClaim] = useState(null);
+  const [turns, setTurns] = useState([]);
+  const [handoff, setHandoff] = useState(null);
+  const [outcome, setOutcome] = useState(null);
+  const [terminalOnly, setTerminalOnly] = useState(false);
+  const [choosing, setChoosing] = useState(false);
+  const [error, setError] = useState(null);
+  const [wsReady, setWsReady] = useState(false);
+
+  const wsRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const handoffWaitRef = useRef(null);
+  const queueRef = useRef(null);
+  const callActiveRef = useRef(false);
+  const startingRef = useRef(false);
+  const handoffChosenRef = useRef(false);
+  const abortToIdleRef = useRef(/** @type {(message?: string) => void} */ (null));
+  const onHandoffShownRef = useRef(/** @type {() => void} */ (null));
+
+  const wsConfigured = Boolean(WS_URL);
+
+  const abortToIdle = useCallback((message) => {
+    if (!callActiveRef.current) return;
+
+    callActiveRef.current = false;
+    startingRef.current = false;
+    handoffChosenRef.current = false;
+    queueRef.current?.reset();
+    setHandoff(null);
+    setChoosing(false);
+    setPhase("idle");
+    setPillState("idle");
+    setHeaderCollapsed(false);
+    setOutcome(null);
+    setTerminalOnly(false);
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+    }
+
+    if (message) setError(message);
+  }, []);
+
+  abortToIdleRef.current = abortToIdle;
+
+  onHandoffShownRef.current = () => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "handoff_ready" }));
+    }
+  };
+
+  if (!queueRef.current) {
+    queueRef.current = createQueueProcessor({
+      setPhase,
+      setPillState,
+      setTurns,
+      setHandoff,
+      setOutcome,
+      setTerminalOnly,
+      setChoosing,
+      setError,
+      audioRef,
+      handoffWaitRef,
+      callActiveRef,
+      onHandoffShown: () => onHandoffShownRef.current?.(),
+      onCallFinished: () => {
+        callActiveRef.current = false;
+      },
+    });
+  }
+
+  useEffect(() => {
+    if (!wsConfigured) return;
+
+    let ws = null;
+    let reconnectTimer = null;
+    let cancelled = false;
+
+    const connect = () => {
+      if (cancelled) return;
+
+      ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsReady(true);
+        if (!callActiveRef.current) {
+          setError(null);
+        }
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+        setWsReady(false);
+        if (callActiveRef.current) {
+          abortToIdleRef.current?.("Connection to the advocate lost");
+        }
+        if (!cancelled) {
+          reconnectTimer = setTimeout(connect, WS_RECONNECT_MS);
+        }
+      };
+
+      ws.onerror = () => {
+        if (!callActiveRef.current) {
+          setError("Could not connect to the local advocate");
+        }
+      };
+
+      ws.onmessage = (event) => {
+        let msg;
+        try {
+          msg = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        switch (msg.type) {
+          case "claim":
+            setClaim({
+              claimNumber: msg.claimNumber,
+              service: msg.service,
+              claimAmount: msg.claimAmount,
+              goal: msg.goal,
+              denialCode: msg.denialCode,
+              denialReason: msg.denialReason,
+            });
+            break;
+          case "turn":
+          case "handoff":
+          case "outcome":
+          case "end":
+            queueRef.current?.enqueue(msg);
+            break;
+          case "error":
+            if (callActiveRef.current) {
+              if (msg.message === BENIGN_HANDOFF_ERROR) break;
+              abortToIdleRef.current?.(msg.message);
+            } else {
+              setError(msg.message);
+              queueRef.current?.resolveHandoffWait();
+            }
+            break;
+          case "status":
+            if (msg.phase === "done") {
+              queueRef.current?.resolveHandoffWait();
+            }
+            break;
+          default:
+            break;
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      callActiveRef.current = false;
+      startingRef.current = false;
+      ws?.close();
+      wsRef.current = null;
+    };
+  }, [wsConfigured]);
+
+  const unlockAudio = useCallback(async () => {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextCtor) {
+      const ctx = audioCtxRef.current ?? new AudioContextCtor();
+      audioCtxRef.current = ctx;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.muted = true;
+    audio.src = SILENT_WAV;
+    try {
+      await audio.play();
+    } catch {
+      /* autoplay may still reject until user gesture — Start click satisfies that */
+    }
+    audio.pause();
+    audio.currentTime = 0;
+    audio.muted = false;
+    audio.removeAttribute("src");
+  }, []);
+
+  const startCall = useCallback(
+    async (mode = "live") => {
+      if (
+        !wsConfigured ||
+        !wsReady ||
+        !wsRef.current ||
+        startingRef.current ||
+        callActiveRef.current
+      ) {
+        return;
+      }
+
+      startingRef.current = true;
+      callActiveRef.current = true;
+      setError(null);
+      setHeaderCollapsed(true);
+      setPhase("calling");
+      setPillState("connecting");
+      setTurns([]);
+      setHandoff(null);
+      setOutcome(null);
+      setTerminalOnly(false);
+      setChoosing(false);
+      handoffChosenRef.current = false;
+      queueRef.current?.reset();
+
+      try {
+        await unlockAudio();
+        wsRef.current.send(JSON.stringify({ type: "start", mode }));
+      } catch (err) {
+        callActiveRef.current = false;
+        setPhase("idle");
+        setPillState("idle");
+        setHeaderCollapsed(false);
+        setError(err instanceof Error ? err.message : "Could not start call");
+      } finally {
+        startingRef.current = false;
+      }
+    },
+    [unlockAudio, wsConfigured, wsReady]
+  );
+
+  const chooseHandoffOption = useCallback((option) => {
+    if (
+      !wsRef.current ||
+      wsRef.current.readyState !== WebSocket.OPEN ||
+      handoffChosenRef.current
+    ) {
+      return;
+    }
+
+    handoffChosenRef.current = true;
+    setChoosing(true);
+    wsRef.current.send(
+      JSON.stringify({
+        type: "decision",
+        choice: option.id,
+        label: option.label,
+        note: "",
+      })
+    );
+
+    queueRef.current?.resolveHandoffWait();
+  }, []);
+
+  return {
+    wsConfigured,
+    wsReady,
+    phase,
+    pillState,
+    headerCollapsed,
+    claim,
+    turns,
+    handoff,
+    outcome,
+    terminalOnly,
+    choosing,
+    error,
+    audioRef,
+    startCall,
+    chooseHandoffOption,
+  };
+}

@@ -12,6 +12,7 @@ const RUNS_DIR = path.join(ROOT, "runs");
 
 const port = Number(process.env.ORCH_PORT) || 8787;
 const HANDOFF_TIMEOUT_MS = Number(process.env.HANDOFF_TIMEOUT_MS) || 120_000;
+const HANDOFF_READY_TIMEOUT_MS = Number(process.env.HANDOFF_READY_TIMEOUT_MS) || 30_000;
 
 function send(ws, msg) {
   if (ws.readyState === ws.OPEN) {
@@ -97,6 +98,8 @@ function clearDecisionGate(ws) {
 
 function createDecisionGate(ws, options, fallbackDecision, signal) {
   let settled = false;
+  let timeout = null;
+  let readyBackstop = null;
 
   return new Promise((resolve, reject) => {
     const finish = (decision) => {
@@ -116,9 +119,22 @@ function createDecisionGate(ws, options, fallbackDecision, signal) {
     };
 
     const cleanup = () => {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
+      if (readyBackstop) clearTimeout(readyBackstop);
       ws.removeListener("close", onClose);
       signal?.removeEventListener("abort", onAbort);
+    };
+
+    const startTimeout = () => {
+      if (timeout || settled) return;
+      if (readyBackstop) {
+        clearTimeout(readyBackstop);
+        readyBackstop = null;
+      }
+      timeout = setTimeout(() => {
+        console.warn("Handoff timed out — using fallback decision");
+        finish(resolveSafeFallback(options, fallbackDecision));
+      }, HANDOFF_TIMEOUT_MS);
     };
 
     const onClose = () => {
@@ -129,11 +145,6 @@ function createDecisionGate(ws, options, fallbackDecision, signal) {
     const onAbort = () => {
       fail(new Error("Client disconnected"));
     };
-
-    const timeout = setTimeout(() => {
-      console.warn("Handoff timed out — using fallback decision");
-      finish(resolveSafeFallback(options, fallbackDecision));
-    }, HANDOFF_TIMEOUT_MS);
 
     if (signal) {
       if (signal.aborted) {
@@ -149,7 +160,15 @@ function createDecisionGate(ws, options, fallbackDecision, signal) {
       resolve(decision) {
         finish(decision);
       },
+      onReady() {
+        startTimeout();
+      },
     };
+
+    readyBackstop = setTimeout(() => {
+      console.warn("handoff_ready not received — starting decision timer");
+      startTimeout();
+    }, HANDOFF_READY_TIMEOUT_MS);
 
     ws.on("close", onClose);
   });
@@ -300,6 +319,11 @@ function handleConnection(ws, req) {
 
     if (msg.type === "decision") {
       resolveBrowserDecision(ws, { choice: msg.choice });
+      return;
+    }
+
+    if (msg.type === "handoff_ready") {
+      ws.__decisionGate?.onReady?.();
       return;
     }
 

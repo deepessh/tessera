@@ -1,50 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
-const WS_URL = process.env.NEXT_PUBLIC_ORCH_WS_URL ?? "";
-
-/** Synthetic demo claim — overwritten by server `claim` message in item 4. */
-const SAMPLE_CLAIM = {
-  claimNumber: "CLM-2026-88421",
-  service: "MRI lumbar spine without contrast",
-  claimAmount: "$1,840",
-  goal: "Overturn denial",
-  denialCode: "CO-50",
-};
-
-/** @typedef {"idle" | "calling" | "handoff" | "done"} Phase */
-/** @typedef {"idle" | "connecting" | "advocate" | "insurer" | "paused" | "done"} PillState */
-
-/**
- * @typedef {Object} Claim
- * @property {string} claimNumber
- * @property {string} service
- * @property {string} claimAmount
- * @property {string} goal
- * @property {string} denialCode
- * @property {string} [denialReason]
- */
-
-/**
- * @typedef {Object} TranscriptTurn
- * @property {"advocate" | "clinic"} role
- * @property {string} text
- */
-
-/**
- * @typedef {Object} HandoffOption
- * @property {string} id
- * @property {string} label
- */
-
-/**
- * @typedef {Object} Outcome
- * @property {string} status
- * @property {string} summary
- * @property {string} next_steps
- * @property {string} reference_number
- */
+import { useEffect, useRef } from "react";
+import { useCallSession } from "../lib/useCallSession";
 
 function ShieldIcon() {
   return (
@@ -218,47 +175,51 @@ function StatusPill({ state }) {
   );
 }
 
-function IdleBody({ claim, onStart, wsConfigured }) {
+function IdleBody({ claim, onStart, wsConfigured, wsReady }) {
+  const canStart = wsConfigured && wsReady && claim;
+
   return (
     <div className="body-shell">
       <div className="start-card">
-        <div className="claim-header__top">
-          <h2 className="claim-header__title">Denied claim</h2>
-          <span className="claim-header__badge">{formatDenialBadge(claim.denialCode)}</span>
-        </div>
-        <table className="claim-header__table">
-          <tbody>
-            <tr>
-              <td>Claim #</td>
-              <td>{claim.claimNumber}</td>
-            </tr>
-            <tr>
-              <td>Service</td>
-              <td>{shortService(claim.service)}</td>
-            </tr>
-            <tr>
-              <td>Amount</td>
-              <td>{claim.claimAmount}</td>
-            </tr>
-            <tr>
-              <td>Your goal</td>
-              <td>{claim.goal}</td>
-            </tr>
-          </tbody>
-        </table>
-        <button
-          type="button"
-          className="start-button"
-          onClick={onStart}
-          disabled={!wsConfigured}
-        >
+        {claim ? (
+          <>
+            <div className="claim-header__top">
+              <h2 className="claim-header__title">Denied claim</h2>
+              <span className="claim-header__badge">{formatDenialBadge(claim.denialCode)}</span>
+            </div>
+            <table className="claim-header__table">
+              <tbody>
+                <tr>
+                  <td>Claim #</td>
+                  <td>{claim.claimNumber}</td>
+                </tr>
+                <tr>
+                  <td>Service</td>
+                  <td>{shortService(claim.service)}</td>
+                </tr>
+                <tr>
+                  <td>Amount</td>
+                  <td>{claim.claimAmount}</td>
+                </tr>
+                <tr>
+                  <td>Your goal</td>
+                  <td>{claim.goal}</td>
+                </tr>
+              </tbody>
+            </table>
+          </>
+        ) : (
+          <p className="transcript-empty">Connecting to your advocate…</p>
+        )}
+        <button type="button" className="start-button" onClick={onStart} disabled={!canStart}>
           <PhoneIcon />
           Start the call
         </button>
         {!wsConfigured && (
-          <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 10, marginBottom: 0 }}>
-            Set NEXT_PUBLIC_ORCH_WS_URL in web/.env.local
-          </p>
+          <p className="start-hint">Set NEXT_PUBLIC_ORCH_WS_URL in web/.env.local</p>
+        )}
+        {wsConfigured && !wsReady && (
+          <p className="start-hint">Waiting for local advocate (npm run serve)…</p>
         )}
       </div>
     </div>
@@ -266,10 +227,17 @@ function IdleBody({ claim, onStart, wsConfigured }) {
 }
 
 function CallingBody({ turns }) {
+  const transcriptRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turns.length]);
+
   return (
     <div className="body-shell">
       <div className="body-panel">
-        <div className="transcript" role="log" aria-live="polite" aria-relevant="additions">
+        <div className="transcript" ref={transcriptRef} role="log" aria-live="polite" aria-relevant="additions">
           {turns.length === 0 ? (
             <p className="transcript-empty">Waiting for the advocate to connect…</p>
           ) : (
@@ -290,6 +258,7 @@ function CallingBody({ turns }) {
               );
             })
           )}
+          <div ref={bottomRef} aria-hidden="true" />
         </div>
       </div>
     </div>
@@ -363,44 +332,23 @@ function DoneBody({ outcome, terminalOnly }) {
 }
 
 export default function PatientAdvocatePage() {
-  /** @type {[Phase, Function]} */
-  const [phase, setPhase] = useState("idle");
-  const [headerCollapsed, setHeaderCollapsed] = useState(false);
-  /** @type {[PillState, Function]} */
-  const [pillState, setPillState] = useState("idle");
-
-  /** @type {[Claim, Function]} */
-  const [claim, setClaim] = useState(SAMPLE_CLAIM);
-  /** @type {[TranscriptTurn[], Function]} */
-  const [turns, setTurns] = useState([]);
-  const [handoff, setHandoff] = useState(
-    /** @type {{ reason: string, options: HandoffOption[] } | null} */ (null)
-  );
-  const [outcome, setOutcome] = useState(/** @type {Outcome | null} */ (null));
-  const [terminalOnly, setTerminalOnly] = useState(false);
-  const [choosing, setChoosing] = useState(false);
-
-  const wsConfigured = Boolean(WS_URL);
-
-  const displayClaim = claim;
-
-  function handleStart() {
-    if (!wsConfigured) return;
-    setHeaderCollapsed(true);
-    setPhase("calling");
-    setPillState("connecting");
-    setTurns([]);
-    setHandoff(null);
-    setOutcome(null);
-    setTerminalOnly(false);
-    // WS connect + start {mode:"live"} wired in Phase 2.1 item 4
-  }
-
-  function handleHandoffChoose(option) {
-    setChoosing(true);
-    // decision {choice,label,note} wired in Phase 2.1 item 4
-    void option;
-  }
+  const {
+    wsConfigured,
+    wsReady,
+    phase,
+    pillState,
+    headerCollapsed,
+    claim,
+    turns,
+    handoff,
+    outcome,
+    terminalOnly,
+    choosing,
+    error,
+    audioRef,
+    startCall,
+    chooseHandoffOption,
+  } = useCallSession();
 
   return (
     <div className="app">
@@ -410,19 +358,33 @@ export default function PatientAdvocatePage() {
         handoff decision, and outcome card.
       </p>
 
-      {phase !== "idle" && <ClaimHeader claim={displayClaim} collapsed={headerCollapsed} />}
+      {/* Single reused audio element — autoplay unlocked on Start click */}
+      <audio ref={audioRef} preload="auto" playsInline className="sr-only" />
+
+      {phase !== "idle" && claim && <ClaimHeader claim={claim} collapsed={headerCollapsed} />}
 
       <StatusPill state={pillState} />
 
+      {error && (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      )}
+
       {phase === "idle" && (
-        <IdleBody claim={displayClaim} onStart={handleStart} wsConfigured={wsConfigured} />
+        <IdleBody
+          claim={claim}
+          onStart={() => startCall("live")}
+          wsConfigured={wsConfigured}
+          wsReady={wsReady}
+        />
       )}
       {phase === "calling" && <CallingBody turns={turns} />}
       {phase === "handoff" && handoff && (
         <HandoffBody
           reason={handoff.reason}
           options={handoff.options}
-          onChoose={handleHandoffChoose}
+          onChoose={chooseHandoffOption}
           choosing={choosing}
         />
       )}
