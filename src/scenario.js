@@ -50,7 +50,7 @@ export function advocateInstructions(context) {
     `- Urgency: ${context.urgency}\n\n` +
     "BEHAVIOR:\n" +
     "- Be firm but professional. Cite the patient's specific context when pushing back.\n" +
-    "- CRITICAL: Every spoken response must be at most 2 short sentences. Never exceed this.\n" +
+    "- CRITICAL: Every response must be at most 2 short sentences. Never exceed this limit.\n" +
     "- When the insurer offers a partial resolution or asks for patient authorization on a compromise, call request_patient_input with clear options (e.g., accept partial vs push for full coverage).\n" +
     "- After the patient decides via request_patient_input, your very next action MUST be to call complete_call with the final resolution — do not keep negotiating.\n" +
     "- When the call reaches a final resolution, call complete_call with status, summary, next_steps, and reference_number."
@@ -58,16 +58,45 @@ export function advocateInstructions(context) {
 }
 
 export function advocateOpening(context) {
-  return (
-    `Hello, I'm calling on behalf of ${context.patientName} regarding claim ${context.claimNumber} — ` +
-    `a denied MRI for ${context.diagnosis}. I'd like to discuss the denial and request a review ` +
-    `based on the patient's documented conservative treatment history.`
-  );
+  const variations = [
+    () =>
+      `Hi, good ${timeOfDayGreeting()}. I'm calling on behalf of ${context.patientName} about claim ${context.claimNumber} — ` +
+      `a denied MRI for ${shortDiagnosis(context.diagnosis)}. I'd like to walk through the denial and request a review.`,
+    () =>
+      `Hello, thanks for taking my call. This is regarding ${context.patientName}'s claim ${context.claimNumber}, ` +
+      `policy ${context.policyNumber}. The MRI was denied as "${shortDenial(context.denialReason)}," and I'd like to dispute that.`,
+    () =>
+      `Hi there. I'm reaching out about a denied MRI for ${context.patientName} — claim ${context.claimNumber}. ` +
+      `The denial cited ${context.denialCode}, but there's a documented conservative treatment history I'd like to review with you.`,
+    () =>
+      `Good ${timeOfDayGreeting()} — I'm an advocate calling for ${context.patientName} regarding claim ${context.claimNumber}. ` +
+      `We're contesting the denial of ${shortDiagnosis(context.diagnosis)} imaging and would like to request a reconsideration.`,
+    () =>
+      `Hello, I'm following up on claim ${context.claimNumber} for ${context.patientName}. ` +
+      `The MRI denial doesn't reflect the patient's full conservative treatment record, and I'd like to discuss next steps for an appeal.`,
+  ];
+  const pick = variations[Math.floor(Math.random() * variations.length)];
+  return pick();
+}
+
+function timeOfDayGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+function shortDiagnosis(diagnosis) {
+  return diagnosis.replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
+function shortDenial(reason) {
+  return reason.split("—")[0].trim().toLowerCase();
 }
 
 export const CLINIC_INSTRUCTIONS =
   "You are an insurance claims representative who denied an MRI claim. " +
-  "Be bureaucratic and cite policy when denying. Respond in at most 2 sentences.\n\n" +
+  "Be bureaucratic and cite policy when denying. Respond in very short sentences. Not more than 2 sentences in any turn..\n\n" +
   "CONDITIONAL CURVEBALLS (deploy naturally when triggered — do not announce them):\n" +
   "1. If the advocate cites medical necessity or mentions conservative treatment history, push back: " +
   "demand proof of at least 6 weeks of DOCUMENTED consecutive conservative treatment with dates and provider names " +
@@ -75,7 +104,7 @@ export const CLINIC_INSTRUCTIONS =
   "2. If the advocate requests expedited review or emphasizes urgency, offer ONLY a partial/one-time courtesy resolution " +
   "(e.g., approve one MRI session or partial reimbursement) that requires explicit patient authorization — " +
   "frame it as the best you can do without a full appeal.\n\n" +
-  "After 2-3 exchanges, if the advocate persists, you may offer the partial courtesy resolution even if they haven't asked for expedited review yet.";
+  "After 2-3 exchanges, you must offer a partial courtesy resolution.";
 
 export const ADVOCATE_TOOLS = [
   {
