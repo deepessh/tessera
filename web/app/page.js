@@ -305,7 +305,7 @@ function CallingBody({ turns }) {
   );
 }
 
-function HandoffBody({ reason, options, onChoose, choosing }) {
+function HandoffBody({ reason, options, offer, onChoose, choosing }) {
   return (
     <div className="body-shell">
       <div className="handoff-panel">
@@ -313,6 +313,12 @@ function HandoffBody({ reason, options, onChoose, choosing }) {
           <HandStopIcon />
           <h2 className="handoff-panel__title">Tessera paused — your call to make</h2>
         </div>
+        {offer && (
+          <div className="handoff-panel__offer">
+            <span className="handoff-panel__offer-label">What the insurer offered</span>
+            <p className="handoff-panel__offer-text">“{offer}”</p>
+          </div>
+        )}
         <p className="handoff-panel__reason">{reason}</p>
         <div className="handoff-options">
           {options.map((option, index) => (
@@ -494,6 +500,7 @@ export default function PatientAdvocatePage() {
         <HandoffBody
           reason={handoff.reason}
           options={handoff.options}
+          offer={[...turns].reverse().find((turn) => turn.role !== "advocate")?.text}
           onChoose={chooseHandoffOption}
           choosing={choosing}
         />

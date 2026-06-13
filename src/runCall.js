@@ -120,7 +120,7 @@ function throwIfAborted(signal) {
 }
 
 async function advocateRespond(advocate, text, turns, runStart, timing, hooks) {
-  const { requestDecision, onHandoff } = hooks;
+  const { requestDecision, onHandoff, emitTurn } = hooks;
   let audioStartMs = Date.now() - runStart;
   let result = await advocate.sendUserTurn(text);
 
@@ -156,6 +156,11 @@ async function advocateRespond(advocate, text, turns, runStart, timing, hooks) {
         audioStartMs = Date.now() - runStart;
         result = await advocate.sendFunctionResult(result.callId, decision);
         if (result.type === "audio") {
+          // The advocate speaks its acknowledgement of the patient's choice
+          // before completing. Surface that turn to the browser instead of
+          // dropping it, otherwise the agent appears to go silent post-handoff.
+          await emitTurn("advocate", result, audioStartMs);
+          audioStartMs = Date.now() - runStart;
           result = await advocate.sendUserTurn(
             "The patient has decided. Call complete_call immediately with status, summary, next_steps, and reference_number."
           );
@@ -236,7 +241,14 @@ export async function runCall({
     label: "clinic",
   });
 
-  const hooks = { requestDecision, onHandoff };
+  const emitTurn = async (role, audioResult, startMs) => {
+    const saved = saveTurn(runDir, turnIndex++, role, audioResult, startMs);
+    turns.push(saved);
+    await invokeHook(onTurn, saved);
+    return saved;
+  };
+
+  const hooks = { requestDecision, onHandoff, emitTurn };
 
   const onAbort = () => {
     advocate.close();
@@ -253,9 +265,7 @@ export async function runCall({
     const openingText = advocateOpening(PATIENT_CONTEXT);
     const openingStart = Date.now() - runStart;
     const opening = await advocate.openWith(openingText);
-    const openingTurn = saveTurn(runDir, turnIndex++, "advocate", opening, openingStart);
-    turns.push(openingTurn);
-    await invokeHook(onTurn, openingTurn);
+    await emitTurn("advocate", opening, openingStart);
 
     let lastText = opening.transcript;
     let callComplete = false;
@@ -272,9 +282,7 @@ export async function runCall({
       const clinicStart = Date.now() - runStart;
       const clinicTurn = await clinic.sendUserTurn(lastText);
       throwIfAborted(signal);
-      const clinicSaved = saveTurn(runDir, turnIndex++, "clinic", clinicTurn, clinicStart);
-      turns.push(clinicSaved);
-      await invokeHook(onTurn, clinicSaved);
+      await emitTurn("clinic", clinicTurn, clinicStart);
       lastText = clinicTurn.transcript;
 
       const advocateResult = await advocateRespond(advocate, lastText, turns, runStart, timing, hooks);
@@ -292,15 +300,7 @@ export async function runCall({
         break;
       }
 
-      const advocateSaved = saveTurn(
-        runDir,
-        turnIndex++,
-        "advocate",
-        advocateResult,
-        advocateResult.audioStartMs
-      );
-      turns.push(advocateSaved);
-      await invokeHook(onTurn, advocateSaved);
+      await emitTurn("advocate", advocateResult, advocateResult.audioStartMs);
       lastText = advocateResult.transcript;
     }
 
