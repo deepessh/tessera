@@ -415,41 +415,48 @@ body {
 
 .handoff-panel {
   background: var(--color-handoff-bg);
-  border: 2px solid var(--color-handoff-border);
+  border: 3px solid var(--color-handoff-border);
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 .handoff-panel__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.handoff-panel__header svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--color-handoff-text);
 }
 
 .handoff-panel__title {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-handoff-text);
   margin: 0;
 }
 
 .handoff-panel__reason {
-  font-size: 14px;
+  font-size: 18px;
   color: var(--color-handoff-body);
-  margin: 0 0 14px;
-  line-height: 1.6;
+  margin: 0 0 18px;
+  line-height: 1.5;
 }
 
 .handoff-options {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .handoff-option {
   flex: 1;
-  padding: 11px;
-  font-size: 13px;
+  padding: 14px;
+  font-size: 15px;
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;

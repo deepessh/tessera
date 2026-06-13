@@ -311,7 +311,7 @@ function HandoffBody({ reason, options, onChoose, choosing }) {
       <div className="handoff-panel">
         <div className="handoff-panel__header">
           <HandStopIcon />
-          <h2 className="handoff-panel__title">Call paused — your decision</h2>
+          <h2 className="handoff-panel__title">Tessera paused — your call to make</h2>
         </div>
         <p className="handoff-panel__reason">{reason}</p>
         <div className="handoff-options">
