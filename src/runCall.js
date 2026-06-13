@@ -113,6 +113,12 @@ async function invokeHook(hook, ...args) {
   await hook(...args);
 }
 
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw new Error("Call aborted");
+  }
+}
+
 async function advocateRespond(advocate, text, turns, runStart, timing, hooks) {
   const { requestDecision, onHandoff } = hooks;
   let audioStartMs = Date.now() - runStart;
@@ -188,6 +194,7 @@ async function advocateRespond(advocate, text, turns, runStart, timing, hooks) {
  * @param {({reason: string}) => void|Promise<void>} [hooks.onEnd] - when loop ends without outcome
  * @param {({reason, options}) => Promise<{choice,label,note}>} hooks.requestDecision - resolves patient choice
  * @param {string} [hooks.apiKey] - defaults to process.env.X_AI_API_KEY
+ * @param {AbortSignal} [hooks.signal] - aborts the call and closes Grok sessions
  */
 export async function runCall({
   onTurn = noop,
@@ -196,6 +203,7 @@ export async function runCall({
   onEnd = noop,
   requestDecision,
   apiKey = process.env.X_AI_API_KEY,
+  signal,
 } = {}) {
   if (!apiKey) {
     throw new Error("Missing X_AI_API_KEY in .env");
@@ -230,7 +238,14 @@ export async function runCall({
 
   const hooks = { requestDecision, onHandoff };
 
+  const onAbort = () => {
+    advocate.close();
+    clinic.close();
+  };
+  signal?.addEventListener("abort", onAbort);
+
   try {
+    throwIfAborted(signal);
     await Promise.all([advocate.connect(), clinic.connect()]);
     advocate.configure();
     clinic.configure();
@@ -249,18 +264,21 @@ export async function runCall({
     const effectiveElapsed = () => Date.now() - runStart - timing.handoffPauseMs;
 
     for (let exchange = 1; exchange <= EXCHANGES && !callComplete; exchange++) {
+      throwIfAborted(signal);
       if (effectiveElapsed() > MAX_TOTAL_MS) {
         throw new Error(`Exceeded ${MAX_TOTAL_MS}ms budget at exchange ${exchange}`);
       }
 
       const clinicStart = Date.now() - runStart;
       const clinicTurn = await clinic.sendUserTurn(lastText);
+      throwIfAborted(signal);
       const clinicSaved = saveTurn(runDir, turnIndex++, "clinic", clinicTurn, clinicStart);
       turns.push(clinicSaved);
       await invokeHook(onTurn, clinicSaved);
       lastText = clinicTurn.transcript;
 
       const advocateResult = await advocateRespond(advocate, lastText, turns, runStart, timing, hooks);
+      throwIfAborted(signal);
 
       if (advocateResult.type === "complete") {
         outcome = advocateResult.outcome;
@@ -312,6 +330,7 @@ export async function runCall({
       callComplete,
     };
   } finally {
+    signal?.removeEventListener("abort", onAbort);
     advocate.close();
     clinic.close();
   }
