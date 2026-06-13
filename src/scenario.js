@@ -2,6 +2,9 @@ export const PATIENT_CONTEXT = {
   patientName: "Maria Santos",
   policyNumber: "AH-2847193",
   claimNumber: "CLM-2026-88421",
+  claimAmount: "$1,840",
+  goal: "Overturn denial",
+  denialCode: "CO-50",
   dateOfBirth: "1978-04-12",
   diagnosis: "Lumbar disc herniation with radiculopathy (M51.16)",
   serviceRequested: "MRI lumbar spine without contrast",
@@ -47,10 +50,10 @@ export function advocateInstructions(context) {
     `- Urgency: ${context.urgency}\n\n` +
     "BEHAVIOR:\n" +
     "- Be firm but professional. Cite the patient's specific context when pushing back.\n" +
-    "- Respond in at most 2 sentences per turn.\n" +
+    "- CRITICAL: Every spoken response must be at most 2 short sentences. Never exceed this.\n" +
     "- When the insurer offers a partial resolution or asks for patient authorization on a compromise, call request_patient_input with clear options (e.g., accept partial vs push for full coverage).\n" +
-    "- When the call reaches a final resolution, call complete_call with status, summary, next_steps, and reference_number.\n" +
-    "- Do NOT call complete_call until you've pursued the best outcome for the patient."
+    "- After the patient decides via request_patient_input, your very next action MUST be to call complete_call with the final resolution — do not keep negotiating.\n" +
+    "- When the call reaches a final resolution, call complete_call with status, summary, next_steps, and reference_number."
   );
 }
 
@@ -119,13 +122,22 @@ export const ADVOCATE_TOOLS = [
   },
 ];
 
+export function buildDecision(choice, options) {
+  const matched = options?.find((o) => o.id === choice);
+  if (!matched) {
+    throw new Error(
+      `Decision choice "${choice}" does not match any option id: ${options?.map((o) => o.id).join(", ") || "(none)"}`
+    );
+  }
+  return {
+    choice: matched.id,
+    label: matched.label,
+    note: "",
+  };
+}
+
 export async function requestDecision({ reason, options }) {
   console.log("[HANDOFF]", reason, options);
   const choice = DEFAULT_DECISION;
-  const matched = options?.find((o) => o.id === choice);
-  return {
-    choice,
-    label: matched?.label || choice,
-    note: "",
-  };
+  return buildDecision(choice, options);
 }

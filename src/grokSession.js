@@ -3,13 +3,22 @@ import WebSocket from "ws";
 const WS_URL = "wss://api.x.ai/v1/realtime?model=grok-voice-latest";
 
 export class GrokSession {
-  constructor({ apiKey, voice, instructions, tools, turnTimeoutMs = 20000, label = "session" }) {
+  constructor({
+    apiKey,
+    voice,
+    instructions,
+    tools,
+    turnTimeoutMs = 20000,
+    label = "session",
+    outputSpeed,
+  }) {
     this.apiKey = apiKey;
     this.voice = voice;
     this.instructions = instructions;
     this.tools = tools || [];
     this.turnTimeoutMs = turnTimeoutMs;
     this.label = label;
+    this.outputSpeed = outputSpeed;
     this.ws = null;
     this.pendingTurn = null;
     this.useForceMessageFallback = false;
@@ -42,7 +51,10 @@ export class GrokSession {
       turn_detection: null,
       audio: {
         input: { format: { type: "audio/pcm", rate: 24000 } },
-        output: { format: { type: "audio/pcm", rate: 24000 } },
+        output: {
+          format: { type: "audio/pcm", rate: 24000 },
+          ...(this.outputSpeed ? { speed: this.outputSpeed } : {}),
+        },
       },
     };
     if (this.tools.length > 0) {

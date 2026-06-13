@@ -67,18 +67,30 @@ async function main() {
     }
     prevStartMs = turn.startMs;
 
-    const wavAbs = path.isAbsolute(turn.wavPath)
-      ? turn.wavPath
-      : path.join(ROOT, turn.wavPath);
-
-    const wavExists = fs.existsSync(wavAbs);
-    const wavSize = wavExists ? fs.statSync(wavAbs).size : 0;
-
     console.log(`[${String(i).padStart(2, "0")}] +${turn.startMs}ms ${turn.role}`);
-    console.log(`     text: ${turn.text}`);
-    console.log(`     audio: ${turn.wavPath} (${wavSize} bytes${wavExists ? "" : " MISSING"})`);
-    if (turn.durMs) {
-      console.log(`     duration: ${turn.durMs}ms`);
+
+    if (turn.type === "audio") {
+      const wavAbs = path.isAbsolute(turn.wavPath)
+        ? turn.wavPath
+        : path.join(ROOT, turn.wavPath);
+      const wavExists = fs.existsSync(wavAbs);
+      const wavSize = wavExists ? fs.statSync(wavAbs).size : 0;
+
+      console.log(`     text: ${turn.text}`);
+      console.log(`     audio: ${turn.wavPath} (${wavSize} bytes${wavExists ? "" : " MISSING"})`);
+      if (turn.durMs) {
+        console.log(`     duration: ${turn.durMs}ms`);
+      }
+    } else if (turn.role === "tool_call") {
+      console.log(`     tool: ${turn.tool}`);
+      console.log(`     args: ${JSON.stringify(turn.args)}`);
+    } else if (turn.role === "handoff") {
+      console.log(`     reason: ${turn.reason}`);
+      console.log(`     decision: ${JSON.stringify(turn.decision)}`);
+    } else if (turn.role === "outcome") {
+      console.log(`     outcome: ${JSON.stringify(turn.outcome)}`);
+    } else {
+      console.log(`     ${JSON.stringify(turn)}`);
     }
   }
 
