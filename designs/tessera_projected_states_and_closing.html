@@ -1,0 +1,92 @@
+<h2 class="sr-only">Tessera projected demo screens: persistent thesis bar, live call, patient handoff decision, outcome, and closing asymmetry screen.</h2>
+<div style="display:flex; flex-direction:column; gap:1.5rem; padding:1rem 0;">
+
+<div>
+<div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px; letter-spacing:0.04em;">PERSISTENT THESIS BAR · top of screen, always visible</div>
+<div style="background:#04342C; border-radius:var(--border-radius-md); padding:14px 20px; display:flex; align-items:center; gap:14px;">
+  <span style="font-weight:500; font-size:17px; color:#9FE1CB;">Tessera</span>
+  <span style="width:1px; height:18px; background:#1D9E75;"></span>
+  <span style="font-size:15px; color:#E1F5EE;">The patient is the only party on the call without an agent.</span>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px; letter-spacing:0.04em;">LIVE CALL · projection scale</div>
+<div style="background:var(--color-background-secondary); border-radius:var(--border-radius-lg); padding:1.5rem;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+    <span style="width:11px; height:11px; border-radius:50%; background:#1D9E75; display:inline-block;"></span>
+    <span style="font-size:16px; color:#0F6E56; font-weight:500;">Tessera speaking</span>
+    <span style="margin-left:auto; font-size:14px; color:var(--color-text-secondary);"><i class="ti ti-clock" aria-hidden="true" style="vertical-align:-2px;"></i> 0:48</span>
+  </div>
+
+  <div style="display:flex; gap:12px; margin-bottom:14px;">
+    <div style="width:36px; height:36px; border-radius:50%; background:#0F6E56; color:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px;"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+    <div style="background:#9FE1CB; border-radius:var(--border-radius-md); padding:12px 16px; font-size:16px; color:#04342C; line-height:1.5;">I'm calling for the member on claim UHC-8821. The MRI was physician-ordered and medically necessary.</div>
+  </div>
+
+  <div style="display:flex; gap:12px; margin-bottom:14px; flex-direction:row-reverse;">
+    <div style="width:36px; height:36px; border-radius:50%; background:#888780; color:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px;"><i class="ti ti-building" aria-hidden="true"></i></div>
+    <div style="background:#D3D1C7; border-radius:var(--border-radius-md); padding:12px 16px; font-size:16px; color:#2C2C2A; line-height:1.5;">That code needs a prior auth on file. I don't see one — <span style="color:#A32D2D; font-weight:500;">I can't reverse this.</span></div>
+  </div>
+
+  <div style="display:flex; gap:12px;">
+    <div style="width:36px; height:36px; border-radius:50%; background:#0F6E56; color:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px;"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+    <div style="background:#9FE1CB; border-radius:var(--border-radius-md); padding:12px 16px; font-size:16px; color:#04342C; line-height:1.5;">The provider filed auth on March 1st — reference PA-4471. Check under that number.</div>
+  </div>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px; letter-spacing:0.04em;">HANDOFF · the centerpiece — visually interrupts</div>
+<div style="background:#FAEEDA; border:3px solid #BA7517; border-radius:var(--border-radius-lg); padding:1.5rem;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+    <i class="ti ti-hand-stop" aria-hidden="true" style="color:#854F0B; font-size:22px;"></i>
+    <span style="font-size:16px; font-weight:500; color:#854F0B;">Tessera paused — your call to make</span>
+  </div>
+  <p style="font-size:18px; color:#412402; margin:0 0 18px; line-height:1.5;">The insurer will approve <strong style="font-weight:500;">$1,100 now</strong>, or you can push for the full <strong style="font-weight:500;">$1,840</strong> — a formal appeal and a 2–3 week wait.</p>
+  <div style="display:flex; gap:12px;">
+    <button style="flex:1; background:var(--color-background-primary); border:0.5px solid var(--color-border-secondary); padding:14px; font-size:15px; font-weight:500; border-radius:var(--border-radius-md); cursor:pointer;">Accept $1,100 now</button>
+    <button style="flex:1; background:#854F0B; color:#fff; border:none; padding:14px; font-size:15px; font-weight:500; border-radius:var(--border-radius-md); cursor:pointer;">Push for full amount</button>
+  </div>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px; letter-spacing:0.04em;">OUTCOME</div>
+<div style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.5rem;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+    <i class="ti ti-check" aria-hidden="true" style="color:#0F6E56; font-size:22px;"></i>
+    <span style="font-weight:500; font-size:18px;">Appeal filed — partial resolution</span>
+  </div>
+  <table style="width:100%; font-size:15px;">
+    <tr><td style="color:var(--color-text-secondary); padding:6px 0; vertical-align:top;">Result</td><td style="text-align:right;">Auth located; full appeal submitted</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:6px 0;">Next step</td><td style="text-align:right;">Insurer responds within 21 days</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:6px 0;">Reference</td><td style="text-align:right; font-family:var(--font-mono);">APL-90412</td></tr>
+    <tr><td style="color:var(--color-text-secondary); padding:6px 0;">If no reply</td><td style="text-align:right;">Tessera calls back Thursday</td></tr>
+  </table>
+</div>
+</div>
+
+<div>
+<div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px; letter-spacing:0.04em;">CLOSING SCREEN · stays up through Q&amp;A</div>
+<div style="background:#04342C; border-radius:var(--border-radius-lg); padding:2rem 1.75rem;">
+  <p style="font-size:22px; font-weight:500; color:#fff; margin:0 0 20px; line-height:1.4;">Everyone on the call had an agent.<br>Now the patient does too.</p>
+  <div style="display:flex; gap:12px; margin-bottom:20px;">
+    <div style="flex:1; background:#085041; border-radius:var(--border-radius-md); padding:12px 14px;">
+      <div style="font-size:13px; color:#5DCAA5; margin-bottom:4px;">Provider</div>
+      <div style="font-size:15px; color:#E1F5EE;"><i class="ti ti-check" aria-hidden="true" style="vertical-align:-2px;"></i> has an agent</div>
+    </div>
+    <div style="flex:1; background:#085041; border-radius:var(--border-radius-md); padding:12px 14px;">
+      <div style="font-size:13px; color:#5DCAA5; margin-bottom:4px;">Payer</div>
+      <div style="font-size:15px; color:#E1F5EE;"><i class="ti ti-check" aria-hidden="true" style="vertical-align:-2px;"></i> has an agent</div>
+    </div>
+    <div style="flex:1; background:#1D9E75; border-radius:var(--border-radius-md); padding:12px 14px;">
+      <div style="font-size:13px; color:#04342C; margin-bottom:4px;">Patient</div>
+      <div style="font-size:15px; color:#04342C; font-weight:500;"><i class="ti ti-shield-check" aria-hidden="true" style="vertical-align:-2px;"></i> Tessera</div>
+    </div>
+  </div>
+  <p style="font-size:14px; color:#9FE1CB; margin:0;">Patient-side voice advocacy · built on Grok voice</p>
+</div>
+</div>
+
+</div>
