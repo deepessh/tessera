@@ -340,10 +340,13 @@ function handleConnection(ws, req) {
 
   ws.on("close", () => {
     console.log("client disconnected");
-    if (running && sessionAbort) {
-      sessionAbort.abort();
-      clearDecisionGate(ws);
-    }
+    if (!running || !sessionAbort) return;
+
+    // During handoff the gate resolves with DEFAULT_DECISION on close — do not abort runCall.
+    if (ws.__decisionGate) return;
+
+    sessionAbort.abort();
+    clearDecisionGate(ws);
   });
 }
 

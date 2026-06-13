@@ -1,0 +1,435 @@
+:root {
+  --color-bg: #faf9f7;
+  --color-bg-secondary: #f3f2ef;
+  --color-bg-primary: #ffffff;
+  --color-border: #e5e4df;
+  --color-text: #2c2c2a;
+  --color-text-secondary: #5f5e5a;
+  --color-text-tertiary: #8a8985;
+
+  --color-advocate: #0f6e56;
+  --color-advocate-bubble: #e1f5ee;
+  --color-advocate-text: #04342c;
+  --color-advocate-dot: #1d9e75;
+
+  --color-insurer-bubble: #f1efe8;
+  --color-insurer-text: #2c2c2a;
+  --color-insurer-avatar: #5f5e5a;
+
+  --color-handoff-bg: #faeeda;
+  --color-handoff-border: #ba7517;
+  --color-handoff-text: #854f0b;
+  --color-handoff-body: #412402;
+
+  --color-denial-bg: #fcebeb;
+  --color-denial-text: #a32d2d;
+
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 1.25rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Header (claim summary) ── */
+
+.claim-header {
+  background: var(--color-bg-primary);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  transition: padding 0.2s ease;
+}
+
+.claim-header--collapsed {
+  padding: 0.625rem 1rem;
+}
+
+.claim-header__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.claim-header__title {
+  font-weight: 500;
+  font-size: 15px;
+  margin: 0;
+}
+
+.claim-header__badge {
+  background: var(--color-denial-bg);
+  color: var(--color-denial-text);
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.claim-header__table {
+  width: 100%;
+  font-size: 13px;
+  margin-top: 12px;
+  border-collapse: collapse;
+}
+
+.claim-header__table td {
+  padding: 4px 0;
+}
+
+.claim-header__table td:first-child {
+  color: var(--color-text-secondary);
+}
+
+.claim-header__table td:last-child {
+  text-align: right;
+}
+
+.claim-header__compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+
+.claim-header__compact-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Status pill ── */
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 1.25rem;
+  font-size: 13px;
+}
+
+.status-pill--hidden {
+  visibility: hidden;
+}
+
+.status-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-pill__dot--advocate {
+  background: var(--color-advocate-dot);
+}
+
+.status-pill__dot--neutral {
+  background: var(--color-text-tertiary);
+}
+
+.status-pill__dot--paused {
+  background: var(--color-handoff-border);
+}
+
+.status-pill__label {
+  font-weight: 500;
+}
+
+.status-pill__label--advocate {
+  color: var(--color-advocate);
+}
+
+.status-pill__label--neutral {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.status-pill__label--paused {
+  color: var(--color-handoff-text);
+}
+
+/* ── Body shell ── */
+
+.body-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.body-panel {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.body-panel--plain {
+  background: var(--color-bg-primary);
+  border: 0.5px solid var(--color-border);
+}
+
+/* ── Idle: start card ── */
+
+.start-card {
+  background: var(--color-bg-primary);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+}
+
+.start-button {
+  width: 100%;
+  margin-top: 16px;
+  background: var(--color-advocate);
+  color: #fff;
+  border: none;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.start-button:hover {
+  filter: brightness(1.05);
+}
+
+.start-button:active {
+  filter: brightness(0.95);
+}
+
+.start-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Calling: transcript ── */
+
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(60dvh, 420px);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.transcript-empty {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.bubble-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.bubble-row--insurer {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar--advocate {
+  background: var(--color-advocate-bubble);
+  color: var(--color-advocate);
+}
+
+.avatar--insurer {
+  background: var(--color-insurer-bubble);
+  color: var(--color-insurer-avatar);
+}
+
+.bubble {
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 13px;
+  max-width: calc(100% - 40px);
+}
+
+.bubble--advocate {
+  background: var(--color-advocate-bubble);
+  color: var(--color-advocate-text);
+}
+
+.bubble--insurer {
+  background: var(--color-insurer-bubble);
+  color: var(--color-insurer-text);
+}
+
+/* ── Handoff ── */
+
+.handoff-panel {
+  background: var(--color-handoff-bg);
+  border: 2px solid var(--color-handoff-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.handoff-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.handoff-panel__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-handoff-text);
+  margin: 0;
+}
+
+.handoff-panel__reason {
+  font-size: 14px;
+  color: var(--color-handoff-body);
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+
+.handoff-options {
+  display: flex;
+  gap: 10px;
+}
+
+.handoff-option {
+  flex: 1;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.handoff-option--secondary {
+  background: var(--color-bg-primary);
+  border: 0.5px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.handoff-option--primary {
+  background: var(--color-handoff-text);
+  color: #fff;
+  border: none;
+}
+
+.handoff-option:hover {
+  filter: brightness(1.03);
+}
+
+.handoff-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Outcome ── */
+
+.outcome-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.outcome-panel__title {
+  font-weight: 500;
+  font-size: 15px;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.outcome-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.outcome-table td {
+  padding: 5px 0;
+  vertical-align: top;
+}
+
+.outcome-table td:first-child {
+  color: var(--color-text-secondary);
+  padding-right: 1rem;
+}
+
+.outcome-table td:last-child {
+  text-align: right;
+}
+
+.outcome-table__mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.terminal-message {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem 1rem;
+  line-height: 1.6;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
