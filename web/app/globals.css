@@ -59,7 +59,8 @@ body {
 }
 
 .app {
-  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
   min-height: 100dvh;
   padding: 1.5rem 2rem 2.5rem;
   display: flex;
