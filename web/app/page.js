@@ -332,6 +332,42 @@ function HandoffBody({ reason, options, onChoose, choosing }) {
   );
 }
 
+function ClosingScreen() {
+  return (
+    <div className="closing-screen">
+      <p className="closing-screen__headline">
+        Everyone on the call had an agent.
+        <br />
+        Now the patient does too.
+      </p>
+      <div className="closing-screen__tiles">
+        <div className="closing-tile closing-tile--muted">
+          <div className="closing-tile__label">Provider</div>
+          <div className="closing-tile__value">
+            <CheckIcon />
+            has an agent
+          </div>
+        </div>
+        <div className="closing-tile closing-tile--muted">
+          <div className="closing-tile__label">Payer</div>
+          <div className="closing-tile__value">
+            <CheckIcon />
+            has an agent
+          </div>
+        </div>
+        <div className="closing-tile closing-tile--patient">
+          <div className="closing-tile__label">Patient</div>
+          <div className="closing-tile__value">
+            <ShieldIcon />
+            Tessera
+          </div>
+        </div>
+      </div>
+      <p className="closing-screen__footer">Patient-side voice advocacy · built on Grok voice</p>
+    </div>
+  );
+}
+
 function DoneBody({ outcome, terminalOnly, onShowClosing }) {
   if (terminalOnly || !outcome) {
     return (
@@ -417,7 +453,7 @@ export default function PatientAdvocatePage() {
   }, [phase]);
 
   return (
-    <div className="app">
+    <div className={`app${showClosing ? " app--closing" : ""}`}>
       <p className="sr-only">
         Tessera patient-side voice advocate across four states: pre-call claim form, active call
         transcript, patient handoff decision, and outcome card.
@@ -428,14 +464,18 @@ export default function PatientAdvocatePage() {
       {/* Single reused audio element — autoplay unlocked on Start click */}
       <audio ref={audioRef} preload="auto" playsInline className="sr-only" />
 
-      {phase !== "idle" && claim && <ClaimHeader claim={claim} collapsed={headerCollapsed} />}
+      {!showClosing && phase !== "idle" && claim && (
+        <ClaimHeader claim={claim} collapsed={headerCollapsed} />
+      )}
 
-      <div className="status-row">
-        <StatusPill state={pillState} />
-        {phase === "calling" && <CallTimer seconds={callSeconds} />}
-      </div>
+      {!showClosing && (
+        <div className="status-row">
+          <StatusPill state={pillState} />
+          {phase === "calling" && <CallTimer seconds={callSeconds} />}
+        </div>
+      )}
 
-      {error && (
+      {!showClosing && error && (
         <p className="error-banner" role="alert">
           {error}
         </p>
@@ -458,6 +498,7 @@ export default function PatientAdvocatePage() {
           choosing={choosing}
         />
       )}
+      {phase === "done" && showClosing && <ClosingScreen />}
       {phase === "done" && !showClosing && (
         <DoneBody
           outcome={outcome}

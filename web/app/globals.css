@@ -560,6 +560,95 @@ body {
   margin-top: 1.25rem;
 }
 
+/* ── Closing screen ── */
+
+.app--closing {
+  gap: 0;
+}
+
+.closing-screen {
+  background: var(--color-deep-teal);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.75rem;
+  flex: 1;
+}
+
+.closing-screen__headline {
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+.closing-screen__tiles {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.closing-tile {
+  flex: 1;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.closing-tile--muted {
+  background: var(--color-deep-teal-tile);
+}
+
+.closing-tile--patient {
+  background: var(--color-advocate-dot);
+}
+
+.closing-tile__label {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.closing-tile--muted .closing-tile__label {
+  color: var(--color-deep-teal-accent-muted);
+}
+
+.closing-tile--patient .closing-tile__label {
+  color: var(--color-deep-teal);
+}
+
+.closing-tile__value {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.closing-tile--muted .closing-tile__value {
+  color: var(--color-advocate-fill);
+}
+
+.closing-tile--patient .closing-tile__value {
+  color: var(--color-deep-teal);
+  font-weight: 500;
+}
+
+.closing-tile__value svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.closing-screen__footer {
+  font-size: 14px;
+  color: var(--color-deep-teal-accent);
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .closing-screen__tiles {
+    flex-direction: column;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
