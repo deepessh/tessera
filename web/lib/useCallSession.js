@@ -3,8 +3,33 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const WS_URL = process.env.NEXT_PUBLIC_ORCH_WS_URL ?? "";
+const PLAYBACK_SPEED = 1.5;
 const CLINIC_READ_DWELL_MS = 3000;
+const CLINIC_READ_MS_PER_WORD = 280;
+const CLINIC_READ_MIN_MS = 2000;
+const CLINIC_READ_MAX_MS = 6000;
 const WS_RECONNECT_MS = 2000;
+
+function scaledMs(ms) {
+  return Math.round(ms / PLAYBACK_SPEED);
+}
+
+/** @param {HTMLMediaElement} audio */
+function applyPlaybackSpeed(audio) {
+  audio.preservesPitch = true;
+  // Legacy vendor flags — harmless on browsers that ignore them.
+  audio.webkitPreservesPitch = true;
+  audio.mozPreservesPitch = true;
+  audio.defaultPlaybackRate = PLAYBACK_SPEED;
+  audio.playbackRate = PLAYBACK_SPEED;
+}
+
+function clinicReadDwellMs(text) {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const estimated = words * CLINIC_READ_MS_PER_WORD;
+  const clamped = Math.min(CLINIC_READ_MAX_MS, Math.max(CLINIC_READ_MIN_MS, estimated));
+  return scaledMs(clamped);
+}
 
 /** Server error when a second decision arrives after the gate closed — safe to ignore. */
 const BENIGN_HANDOFF_ERROR = "No handoff is waiting for a decision";
@@ -50,13 +75,28 @@ function createQueueProcessor({
   const queue = [];
   let draining = false;
   let sawOutcome = false;
-  let skipTurnPacing = false;
   /** @type {(() => void) | null} */
   let playbackFinishRef = null;
   /** @type {(() => void) | null} */
   let dwellFinishRef = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let dwellTimer = null;
+
+  function stopAdvocatePlayback() {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.oncanplay = null;
+      audio.pause();
+      audio.playbackRate = 1;
+      audio.defaultPlaybackRate = 1;
+    }
+    if (playbackFinishRef) {
+      playbackFinishRef();
+      playbackFinishRef = null;
+    }
+  }
 
   function resolveHandoffWait() {
     const resolve = handoffWaitRef.current;
@@ -66,31 +106,7 @@ function createQueueProcessor({
     }
   }
 
-  function stopPlayback() {
-    skipTurnPacing = true;
-    const audio = audioRef.current;
-    if (audio) {
-      audio.onended = null;
-      audio.onerror = null;
-      audio.pause();
-      audio.removeAttribute("src");
-    }
-    if (playbackFinishRef) {
-      playbackFinishRef();
-      playbackFinishRef = null;
-    }
-    if (dwellTimer) {
-      clearTimeout(dwellTimer);
-      dwellTimer = null;
-    }
-    if (dwellFinishRef) {
-      dwellFinishRef();
-      dwellFinishRef = null;
-    }
-  }
-
   function waitDwell(ms) {
-    if (skipTurnPacing) return Promise.resolve();
     return new Promise((resolve) => {
       dwellFinishRef = resolve;
       dwellTimer = setTimeout(() => {
@@ -101,42 +117,13 @@ function createQueueProcessor({
     });
   }
 
-  function flushTurnTranscripts(turnItems) {
-    if (turnItems.length === 0) return;
-    setTurns((prev) => [
-      ...prev,
-      ...turnItems.map((item) => ({
-        role: item.role === "advocate" ? "advocate" : "clinic",
-        text: item.text,
-      })),
-    ]);
-  }
-
-  function prioritizeHandoff(handoffItem) {
-    stopPlayback();
-
-    const flushedTurns = [];
-    const after = [];
-
-    for (const queued of queue) {
-      if (queued.type === "turn") {
-        flushedTurns.push(queued);
-      } else {
-        after.push(queued);
-      }
-    }
-
-    flushTurnTranscripts(flushedTurns);
-    queue.length = 0;
-    queue.push(handoffItem, ...after);
-    void drain();
-  }
-
   /** @param {string} base64 @param {number} [durMs] */
   function playAdvocateAudio(base64, durMs) {
     const audio = audioRef.current;
     if (!audio) {
-      return new Promise((resolve) => setTimeout(resolve, durMs || CLINIC_READ_DWELL_MS));
+      return new Promise((resolve) =>
+        setTimeout(resolve, scaledMs(durMs || CLINIC_READ_DWELL_MS))
+      );
     }
 
     return new Promise((resolve) => {
@@ -144,21 +131,33 @@ function createQueueProcessor({
         playbackFinishRef = null;
         audio.onended = null;
         audio.onerror = null;
+        audio.oncanplay = null;
+        audio.playbackRate = 1;
+        audio.defaultPlaybackRate = 1;
         resolve();
       };
 
-      if (skipTurnPacing) {
-        finish();
-        return;
-      }
+      const startPlayback = () => {
+        applyPlaybackSpeed(audio);
+        audio.play().catch(() => {
+          setTimeout(finish, scaledMs(durMs || CLINIC_READ_DWELL_MS));
+        });
+      };
 
+      stopAdvocatePlayback();
       playbackFinishRef = finish;
       audio.onended = finish;
       audio.onerror = finish;
       audio.src = `data:audio/wav;base64,${base64}`;
-      audio.play().catch(() => {
-        setTimeout(finish, durMs || CLINIC_READ_DWELL_MS);
-      });
+      audio.load();
+      if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        startPlayback();
+      } else {
+        audio.oncanplay = () => {
+          audio.oncanplay = null;
+          startPlayback();
+        };
+      }
     });
   }
 
@@ -182,19 +181,16 @@ function createQueueProcessor({
         setPillState(role === "advocate" ? "advocate" : "insurer");
         setTurns((prev) => [...prev, { role, text: item.text }]);
 
-        if (skipTurnPacing) break;
-
         if (role === "advocate" && item.audioBase64) {
           await playAdvocateAudio(item.audioBase64, item.durMs);
         } else if (role === "clinic") {
-          await waitDwell(CLINIC_READ_DWELL_MS);
+          await waitDwell(clinicReadDwellMs(item.text));
         } else {
-          await waitDwell(item.durMs || CLINIC_READ_DWELL_MS);
+          await waitDwell(scaledMs(item.durMs || CLINIC_READ_DWELL_MS));
         }
         break;
       }
       case "handoff": {
-        skipTurnPacing = false;
         setPhase("handoff");
         setPillState("paused");
         setHandoff({ reason: item.reason, options: item.options });
@@ -254,11 +250,6 @@ function createQueueProcessor({
     enqueue(item) {
       if (!callActiveRef.current) return;
 
-      if (item.type === "handoff") {
-        prioritizeHandoff(item);
-        return;
-      }
-
       // Server auto-resolved handoff (timeout) and continued — unblock the wait.
       if (
         handoffWaitRef.current &&
@@ -273,8 +264,8 @@ function createQueueProcessor({
       queue.length = 0;
       draining = false;
       sawOutcome = false;
-      skipTurnPacing = false;
       playbackFinishRef = null;
+      stopAdvocatePlayback();
       if (dwellTimer) clearTimeout(dwellTimer);
       dwellTimer = null;
       dwellFinishRef = null;
