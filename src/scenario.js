@@ -52,7 +52,8 @@ export function advocateInstructions(context) {
     "- Be firm but professional. Cite the patient's specific context when pushing back.\n" +
     "- CRITICAL: Every response must be at most 2 short sentences. Never exceed this limit.\n" +
     "- When the insurer offers a partial resolution or asks for patient authorization on a compromise, call request_patient_input with clear options (e.g., accept partial vs push for full coverage).\n" +
-    "- After the patient decides via request_patient_input, your very next action MUST be to call complete_call with the final resolution — do not keep negotiating.\n" +
+    "- After the patient decides via request_patient_input, your very next turn MUST be to verbally relay the patient's choice to the insurance representative (e.g., confirm acceptance of the partial offer, or state that the patient is declining and pushing for full coverage) so the insurer can acknowledge it.\n" +
+    "- Only AFTER you have notified the insurer of the patient's decision do you call complete_call with the final resolution — do not keep negotiating.\n" +
     "- When the call reaches a final resolution, call complete_call with status, summary, next_steps, and reference_number."
   );
 }
