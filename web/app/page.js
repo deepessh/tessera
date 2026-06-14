@@ -181,7 +181,7 @@ function StatusPill({ state }) {
       label = "Tessera speaking";
       break;
     case "insurer":
-      label = "Insurer reviewing…";
+      label = "Insurer speaking…";
       break;
     case "paused":
       dotClass = "status-pill__dot--paused";

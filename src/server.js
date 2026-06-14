@@ -200,7 +200,7 @@ async function runLiveSession(ws, signal) {
         text: turn.text,
         durMs: turn.durMs,
       };
-      if (turn.role === "advocate" && turn.wavPath) {
+      if (turn.wavPath) {
         const audioBase64 = readAudioBase64(turn.wavPath);
         if (audioBase64) msg.audioBase64 = audioBase64;
       }
@@ -257,7 +257,7 @@ async function runReplaySession(ws, signal) {
         text: turn.text,
         durMs: turn.durMs,
       };
-      if (turn.role === "advocate" && turn.wavPath) {
+      if (turn.wavPath) {
         const audioBase64 = readAudioBase64(turn.wavPath);
         if (audioBase64) msg.audioBase64 = audioBase64;
       }

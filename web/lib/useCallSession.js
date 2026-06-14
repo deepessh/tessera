@@ -82,7 +82,7 @@ function createQueueProcessor({
   /** @type {ReturnType<typeof setTimeout> | null} */
   let dwellTimer = null;
 
-  function stopAdvocatePlayback() {
+  function stopTurnPlayback() {
     const audio = audioRef.current;
     if (audio) {
       audio.onended = null;
@@ -118,7 +118,7 @@ function createQueueProcessor({
   }
 
   /** @param {string} base64 @param {number} [durMs] */
-  function playAdvocateAudio(base64, durMs) {
+  function playTurnAudio(base64, durMs) {
     const audio = audioRef.current;
     if (!audio) {
       return new Promise((resolve) =>
@@ -144,7 +144,7 @@ function createQueueProcessor({
         });
       };
 
-      stopAdvocatePlayback();
+      stopTurnPlayback();
       playbackFinishRef = finish;
       audio.onended = finish;
       audio.onerror = finish;
@@ -181,8 +181,8 @@ function createQueueProcessor({
         setPillState(role === "advocate" ? "advocate" : "insurer");
         setTurns((prev) => [...prev, { role, text: item.text }]);
 
-        if (role === "advocate" && item.audioBase64) {
-          await playAdvocateAudio(item.audioBase64, item.durMs);
+        if (item.audioBase64) {
+          await playTurnAudio(item.audioBase64, item.durMs);
         } else if (role === "clinic") {
           await waitDwell(clinicReadDwellMs(item.text));
         } else {
@@ -265,7 +265,7 @@ function createQueueProcessor({
       draining = false;
       sawOutcome = false;
       playbackFinishRef = null;
-      stopAdvocatePlayback();
+      stopTurnPlayback();
       if (dwellTimer) clearTimeout(dwellTimer);
       dwellTimer = null;
       dwellFinishRef = null;
